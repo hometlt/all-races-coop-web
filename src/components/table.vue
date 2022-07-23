@@ -9,7 +9,7 @@
         </v-contextmenu-item>
     </v-contextmenu>
 
-    <div class="vtl-card-body" @keydown.esc="discardChanges()" @keydown.enter="applyChanges()">
+    <div  v-if="view === 'TABLE'" class="vtl-card-body" @keydown.esc="discardChanges()" @keydown.enter="applyChanges()">
         <Transition>
             <div v-if="editing.col?.options" class="vtl-loading-mask" @click="applyChanges()"></div>
         </Transition>
@@ -60,7 +60,7 @@
                     <template #item="{element,index}">
                         <tr class="vtl-tbody-tr"  v-if="index > minVisibleRow && index < maxVisibleRow" :class="{selected: element.$selected}">
                             <td v-for="(col, j) in setting.visibleColumns" :key="j" :title="element[col.field]" :style="col.datasource && element[col.field] && styles(col.datasource[element[col.field]])">
-                                <img v-if="col.datasource && element[col.field]" :src="icon(col.datasource[element[col.field]])"/>
+                                <img v-if="col.icon && element[col.field]" :src="icon(col.datasource[element[col.field]])"/>
                                 <span @click="debug(col.datasource) ">{{element[col.field]}}</span>
                             </td>
                         </tr>
@@ -71,29 +71,31 @@
                 <tfoot>
                     <tr>
                         <td colspan="999">
-                            <button class="vtl-save" @click="save()">save</button>
                             <div class="vtl-status">{{editing.tableStatus}}</div>
                         </td>
                     </tr>
                 </tfoot>
             </table>
-        <div v-if="editing.editorTools">
-            <button>
-                SAVE
-            </button>
-        </div>
+
         <div class="vtl-field-options" :style="editing.position" v-if="editing.col?.options">
-                    <ul class="vtl-options-list" @click="selectOption($event)"  ref="optionsList" @scroll="handleDebouncedScrollOptions">
-                        <template v-for="(option,o) in editing.options" :key="o">
-                            <li :style="styles(option)"  v-if="o > minVisibleOption && o < maxVisibleOption">
-                                <img :src="icon(option)"/>
-                                <span>{{option.id}}</span>
-                            </li>
-                            <li v-else></li>
-                        </template>
-                    </ul>
-                    <div class="vtl-status">{{editing.optionsTitle}}</div>
-                </div>
+            <ul class="vtl-options-list" @click="selectOption($event)"  ref="optionsList" @scroll="handleDebouncedScrollOptions">
+                <template v-for="(option,o) in editing.options" :key="o">
+                    <li :style="styles(option)"  v-if="o > minVisibleOption && o < maxVisibleOption">
+                        <img :src="icon(option)"/>
+                        <span>{{option.id}}</span>
+                    </li>
+                    <li v-else></li>
+                </template>
+            </ul>
+            <div class="vtl-status">{{editing.optionsTitle}}</div>
+        </div>
+    </div>
+    <div v-if="view === 'XML'" class="vtl-card-body">
+        <pre v-highlightjs><code class="xml">{{xml}}</code></pre>
+    </div>
+    <div>
+        <button class="vtl-save" :disabled="view==='XML'" @click="xmlData()">XML</button>
+        <button class="vtl-save" :disabled="view==='TABLE'"  @click="tableData()">TABLE</button>
     </div>
 </template>
 
@@ -102,11 +104,14 @@
 
 
 <script>
+    import hljs from 'highlight.js'
     import { debounce } from "debounce";
     import {directive, Contextmenu, ContextmenuItem} from "v-contextmenu"
     import {defineComponent, ref, reactive, nextTick } from "vue";
     import draggable from './draggable/vuedraggable'
     import "v-contextmenu/dist/themes/dark.css";
+    import VueHighlightJS from 'vue3-highlightjs'
+    import 'highlight.js/styles/agate.css'
 
     let collator = new Intl.Collator(undefined, {
         numeric: true,
@@ -116,6 +121,19 @@
 
     export default defineComponent({
         directives: {
+            highlightjs:  (el, binding) => {
+                const codeNodes = el.querySelectorAll('code')
+
+                for (let i = 0; i < codeNodes.length; i++) {
+                    const codeNode = codeNodes[i]
+
+                    if (typeof binding.value === 'string') {
+                        codeNode.textContent = binding.value
+                    }
+
+                    hljs.highlightBlock(codeNode)
+                }
+            },
             contextmenu: directive,
         },
         components: {
@@ -182,6 +200,10 @@
                 type: Function,
                 default: (item) => "",
             },
+            save: {
+                type: Function,
+                default: (rows,cols) => "",
+            },
             // (Total number of transactions)
             styles: {
                 type: Function,
@@ -198,9 +220,6 @@
                 },
             }
         },
-        save(){
-            console.log(this.DA.tech)
-        },
         mounted(){
             this.applyFilters()
             this.handleDebouncedScroll = debounce(this.updateRowsVisibility, 50);
@@ -208,14 +227,14 @@
             this.$refs.localTable.addEventListener('scroll', this.handleDebouncedScroll);
         },
         methods: {
-            // enableEditorTools(event){
-            //     console.log(event)
-            //     this.editing.editorTools = true
-            // },
-            // disableEditorTools(event){
-            //     console.log(event)
-            //     this.editing.editorTools = false
-            // },
+            tableData(){
+                this.view = "TABLE"
+            },
+            xmlData(){
+                let xml = this.save(this.rows, this.columns)
+                this.view = "XML"
+                this.xml = xml
+            },
             debug(value){
                 window.x= value
             },
@@ -427,7 +446,8 @@
                 // else{
                 let editingValue = this.editing.value?.toLowerCase();
                 this.editing.options = this.editing.col.options.filter(option =>{
-                    return this.optionsFilter(option) && (!editingValue || option.id.toLowerCase().includes(editingValue))
+                    if(option.selectable === false)return false
+                    return this.optionsFilter(option,this.editing.col.field) && (!editingValue || option.id.toLowerCase().includes(editingValue))
                 })
                 // }
                 nextTick(()=>{
@@ -525,6 +545,7 @@
         data () {
             return {
                 localRows: [],
+                view: "TABLE",
                 selectedRows: [],
                 minVisibleRow: 0,
                 maxVisibleRow: 0,

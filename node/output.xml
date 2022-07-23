@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Catalog>
+  <CUser id="CommanderTech">
+    <Instances Id="TerranRaynor_RaynorHero">
+      <User Type="PlayerCommanders" Instance="TerranRaynor">
+        <Field Id="commander"/>
+      </User>
+      <User Type="PlayerPrestige" Instance="CommanderPrestigeRaynorHero">
+        <Field Id="prestige"/>
+      </User>
+      <User Type="UpgradeLevel" Instance="ON">
+        <Field Id="state"/>
+      </User>
+      <User Type="CommanderTech" Instance="ZergKerrigan_KerriganHero">
+        <Field Id="tech"/>
+      </User>
+      <Unit Unit="Raynor">
+        <Field Id="unit"/>
+      </Unit>
+      <AbilCmd Abil="AbathurCreepMend" Cmd="1">
+        <Field Id="ability"/>
+      </AbilCmd>
+      <Upgrade Upgrade="AbathurBiomassRefund">
+        <Field Id="upgrade"/>
+      </Upgrade>
+      <GameLink GameLink="250mmStrikeCannons">
+        <Field Id="behavior"/>
+      </GameLink>
+      <Int Int="22">
+        <Field Id="cost"/>
+      </Int>
+      <Image Image="3P_ICC">
+        <Field Id="icon"/>
+      </Image>
+    </Instances>
+    <Fields Id="commander" EditorColumn="1" Type="User" UserType="PlayerCommanders"/>
+    <Fields Id="prestige" EditorColumn="2" Type="User" UserType="PlayerPrestige"/>
+    <Fields Id="state" EditorColumn="15" Type="User" UserType="UpgradeLevel"/>
+    <Fields Id="unit" EditorColumn="3" Type="Unit"/>
+    <Fields Id="upgrade" EditorColumn="4" Type="Upgrade"/>
+    <Fields Id="ability" EditorColumn="6" Type="AbilCmd"/>
+    <Fields Id="behavior" EditorColumn="7" Type="GameLink" GameLinkType="Behavior"/>
+    <Fields Id="cost" EditorColumn="15" Type="Int"/>
+    <Fields Id="tech" EditorColumn="12" Type="User" UserType="CommanderTech"/>
+    <Fields Id="icon" EditorColumn="14" Type="Image"/>
+  </CUser>
+</Catalog>

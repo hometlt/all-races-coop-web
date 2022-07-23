@@ -194,16 +194,20 @@ function AssignData(target, Instance, structure){
         }
         else{
             let value = entities[0].$.value
-            if(value){
-                if( structure[field] !== String &&structure[field] !== Number && structure[field].constructor === Function) {
-                    value = structure[field](value, Instance)
+
+            let valueType = SC2Types[structure[field]]
+            if(valueType.constructor === Function) {
+                if(value === undefined){
+                    value = entities
                 }
-                else if(structure[field] === Number){
-                    value = +value
-                }
-                if(value !== undefined && value !== null){
-                    target[resultFieldName] = value
-                }
+                value = valueType(value, Instance)
+            }
+            else if(value !== undefined && value !== null && valueType === Number){
+                value = +value
+            }
+
+            if(value !== undefined && value !== null){
+                target[resultFieldName] = value
             }
         }
     }
@@ -216,177 +220,25 @@ let regexp = {
     iconext: /\.dds$/i,
     categoeyrace: /Race:(\w+)/
 }
-//we belevive in a dream
-const SC2Icon  = ((value) => (value.replace(regexp.iconpath, "").replace(regexp.iconext, "")))
-const SC2Color = ((value) => ("#"+value.split(",").slice(1).map(i => (+i).toString(16).padStart(2, '0')).join("")))
-const SC2Link  = String;
-const SC2LinkArray = [{Link: String}];
-const SC2EditorRace = ((value) => (value.match(regexp.categoeyrace)?.[1]))
 
-const SC2GameDataStructute =  {
-    "units:CUnit(id)": {
-        parent: SC2Link,
-        "race:Race": SC2Link,
-        CargoSize : Number,
-        Speed : Number,
-        Sight : Number,
-        Food : Number,
-        EnergyMax : Number,
-        LifeMax : Number,
-        ShieldsMax : Number,
-        ShieldArmor : Number,
-        LifeArmor : Number,
-        "priority:GlossaryPriority" : Number,
-        "Minerals:CostResource{index=Minerals}" : Number,
-        "Vespene:CostResource{index=Vespene}" : Number,
-        Attribute : {value: Number},
-        "NoPlacement:EditorFlags{index=NoPlacement}": Number,
-        "NoPalettes:EditorFlags{index=NoPalettes}": Number,
-        "behaviors:BehaviorArray": [{Link: String}],
-        "weapons:WeaponArray" : [{Link: String}],
-        "abilities:AbilArray" : [{Link: String}],
-        "card:CardLayouts": [{LayoutButtons: [{Face: SC2Link, Row: Number, Column: Number}]}]
-    },
-    "actors:CActorUnit,CActorMissile(id)": {
-        parent: SC2Link,
-        LifeArmorIcon: SC2Icon,
-        ShieldArmorIcon: SC2Icon,
-        "race:EditorCategories": SC2EditorRace,
-        "unit:unitName": SC2Link,
-        "icon:UnitIcon": SC2Icon,
-        "wireframe:Wireframe.Image": SC2Icon,
-        "events:On": [{Terms: String, Send: String}]
-    },
-    "races:CRace(id)": {
-        AttributeId: String,
-        "icon:Icon": SC2Icon,
-        "color:MiniMapBorderColor": SC2Color
-    },
-    "buttons:CButton(id)": {
-        parent: SC2Link,
-        "race:Race": SC2EditorRace,
-        "icon:Icon": SC2Icon
-    },
-    "upgrades:CUpgrade(id)": {
-        parent: SC2Link,
-        "race:Race": SC2Link,
-        "icon:Icon": SC2Icon
-    },
-    "behaviors:CBehaviorBuff(id)": {
-        parent: SC2Link,
-        "race:Race": SC2EditorRace,
-        "icon:InfoIcon": SC2Icon
-    },
-    // "scores:CScoreValueCustom(id)": {
-    //     parent: SC2Link,
-    //     "race:Race": SC2EditorRace,
-    // },
-    // "weapons:CWeaponLegacy(id)|CWeaponStrafe(id)": {
-    //     parent: SC2Link,
-    //     "race:Race": SC2EditorRace,
-    //     "icon:Icon": SC2Icon,
-    //     "DisplayEffect": SC2Link,
-    //     "DisplayAttackCount": Number,
-    //     "Range": Number,
-    //     "Period": Number,
-    //     "Effect": SC2Link
-    // },
-    "abilities:CAbilMerge(id)": {
-        parent: SC2Link,
-        "race:Race": SC2EditorRace,
-        "button:CmdButtonArray{index=WithTarget}.DefaultButtonFace": SC2Link
-    },
-    "abilities:CAbilTransport(id)": {
-        parent: SC2Link,
-        "race:Race": SC2EditorRace,
-        "button:CmdButtonArray{index=Load}.DefaultButtonFace": SC2Link
-    },
-    "abilities:CAbilBehavior(id)": {
-        parent: SC2Link,
-        "race:Race": SC2EditorRace,
-        "button:CmdButtonArray{index=On}.DefaultButtonFace": SC2Link
-    },
-    "abilities:CAbilAugment(id),CAbilEffectInstant(id),CAbilEffectTarget(id),CAbilMorph(id),CAbilMorphPlacement(id),CAbilRedirectInstant(id),CAbilRedirectTarget(id)" : {
-        parent: SC2Link,
-        "race:Race": SC2EditorRace,
-        "button:CmdButtonArray{index=Execute}.DefaultButtonFace": SC2Link
-    },
-    "abilities:CAbilArmMagazine(id),CAbilBuild(id),CAbilResearch(id),CAbilSpecialize(id),CAbilTrain(id),CAbilWarpTrain(id)" : {
-        parent: SC2Link,
-        "race:Race": SC2EditorRace,
-        "info:InfoArray": {
-            Time: Number,
-            Unit: SC2Link,
-            Upgrade: SC2Link,
-            Effect: SC2Link,
-            "button:Button.DefaultButtonFace": SC2Link
-        }
-    },
-    "commanders:CUser{id=PlayerCommanders}.Instances(Id)":{
-        "icon:Image{Field.Id=Icon}.Image": SC2Icon
-    },
-    "techFields:CUser{id=CommanderTech}.Fields(Id)": [{
-        Type: SC2Link,
-        UserType: SC2Link,
-        GameLinkType: SC2Link,
-        EditorColumn: Number
-    }],
-    "tech:CUser{id=CommanderTech}.Instances(Id)":[{
-        "id:Id": String,
-        "ability:AbilCmd{Field.Id=ability}.Abil": SC2Link,
-        "state:User{Field.Id=upgradelevel}.Instance": SC2Link,
-        "commander:User{Field.Id=commander}.Instance": SC2Link,
-        "prestige:User{Field.Id=prestige}.Instance": SC2Link,
-        "unit:Unit{Field.Id=unit}.Unit": SC2Link,
-        "level:Int{Field.Id=level}.Int": SC2Link,
-        "upgrade:Int{Field.Id=upgrade}.Upgrade": SC2Link,
-        "behavior:GameLink{Field.Id=behavior}.GameLink": SC2Link,
-    }],
-    "prestiges:CUser{id=PlayerPrestige}.Instances(Id)": {
-        "button:GameLink{Field.Id=Icon}.GameLink": SC2Icon
-    }
+
+let SC2Types = {
+    SC2Icon: ((value) => {
+        if(value.constructor === Array)return null;
+        return (value.replace(regexp.iconpath, "").replace(regexp.iconext, ""))
+    }),
+    SC2Color: ((value) => ("#"+value.split(",").slice(1).map(i => (+i).toString(16).padStart(2, '0')).join(""))),
+    SC2Link: String,
+    String: String,
+    Number: Number,
+    SC2EditorRace: ((value) => {
+        return (value.match(regexp.categoeyrace)?.[1])
+    }),
+    SC2AbilCmd: ((value) => value[0].$.Abil + (value[0].$.Cmd ? ','+value[0].$.Cmd :''))
 }
-// let struct = {
-//     effects: {
-//         entities: [
-//             "CEffectModifyPlayer",
-//             "CEffectEnumArea",
-//             "CEffectRemoveBehavior",
-//             "CEffectSet",
-//             "CEffectApplyBehavior",
-//             "CEffectCreateUnit",
-//             "CEffectDamage",
-//             "CEffectLaunchMissile",
-//             "CEffectCreatePersistent",
-//             "CEffectTeleport",
-//             "CEffectModifyUnit",
-//             "CEffectEnumTransport",
-//             "CEffectEnumTrackedUnits",
-//             "CEffectAddTrackedUnit",
-//             "CEffectSwitch",
-//             "CEffectCancelOrder",
-//             "CEffectIssueOrder",
-//             "CEffectTransferBehavior",
-//             "CEffectApplyKinetic",
-//             "CEffectDestroyPersistent",
-//             "CEffectReturnMagazine",
-//             "CEffectAddTrackedUnits",
-//             "CEffectApplyForce",
-//             "CEffectCreateHealer",
-//             "CEffectRemoveKinetic",
-//             "CEffectRedirectMissile",
-//             "CEffectEnumMagazine",
-//             "CEffectUseMagazine",
-//             "CEffectReleaseMagazine",
-//             "CEffectMorph",
-//             "CEffectUserData",
-//             "CEffectUseCalldown"
-//         ],
-//         fields: {
 //
-//         }
-//     }
-// }
+// "ability:AbilCmd{Field.Id=ability}.Abil": "SC2AbilCmd",
+//     "cmd:AbilCmd{Field.Id=ability}.Cmd": "SC2Link",
 
 
 function parsegameData (raw) {
@@ -401,46 +253,11 @@ function parsegameData (raw) {
 
 async function getGameData(mods){
 
-    const catalogsBase = [
-        "GameData/AbilData.xml",
-        "GameData/ActorData.xml",
-        "GameData/BehaviorData.xml",
-        "GameData/ButtonData.xml",
-        "GameData/RaceData.xml",
-        "GameData/ScoreValueData.xml",
-        "GameData/SkinData.xml",
-        "GameData/UnitData.xml",
-        "GameData/UpgradeData.xml",
-        "GameData/RaceData.xml",
-        "GameData/UserData.xml",
-        "GameData/EffectData.xml",
-        "GameData/WeaponData.xml",
+    const SC2GameDataStructute = JSON.parse(fs.readFileSync("./structure.json", {encoding: 'utf-8'}))
+    const catalogsBase = "Abil,Actor,Behavior,Button,Race,ScoreValue,Skin,Unit,Upgrade,Race,User,Effect,Weapon".split(",").map(el => `GameData/${el}Data.xml`)
 
-    ]
     const IGNORE = {ignore: true}
     const BaseData = {
-        abilities: {
-            // War3_EffectInstant: {},
-            // War3_EffectTarget: {},
-            // 'DragonBuild,1': {},
-            // 'DragonBuild,2': {},
-            // 'DragonBuild,3': {},
-            // 'UPLBuildBase,1': {},
-            // 'UPLBuildBase,2': {},
-            // 'UPLBuildBase,3': {},
-            // 'UPLBuildBase,4': {},
-            // 'UPLBuildBase,5': {},
-            // 'UPLBuildBase,6': {},
-            // 'UPLBuildBase,7': {},
-            // 'UPLBuildBase,8': {},
-            // 'UPLBuildBase,9': {},
-            // 'UPLBuildBase,10': {},
-            // 'UPLBuildBase,11': {},
-            // 'UPLBuildBase,12': {},
-            // 'UPLBuildBase,13': {},
-            // 'UPLBuildBase,15': {},
-            // 'TerranAddOns,4': {}
-        },
         units: {
             SS_Plane: IGNORE,
             SS_BackgroundSpace: IGNORE,
@@ -473,7 +290,8 @@ async function getGameData(mods){
 
         let catalogsPaths = catalogsBase.slice();
 
-        let modPath = "./../../" + mod + "/";
+        let modPath = "./../../coop/" + mod + "/";
+
         let IncludesDataFile = modPath + "GameData.xml";
         if (fs.existsSync(IncludesDataFile)) {
             let includesDataRaw = fs.readFileSync(IncludesDataFile, {encoding: 'utf-8'})
@@ -720,6 +538,18 @@ async function getGameData(mods){
     gameData.icons = images
     // gameData.tech = Object.values(gameData.tech)
 
+
+    for(let abilityID in gameData.abilities){
+        let ability = gameData.abilities[abilityID]
+        if(ability.info){
+            for(let abilCmdID in ability.info){
+                let abilCmd = ability.info[abilCmdID]
+                if(!abilCmd.Unit || !abilCmd.button){
+                    delete ability.info[abilCmdID]
+                }
+            }
+        }
+    }
 
     let finalDataBeautified = JSON.stringify(gameData, null, "\t");
 
