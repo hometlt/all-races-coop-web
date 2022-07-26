@@ -152,18 +152,18 @@ function sc2race(item,DO){
 }
 function sc2icon(item,DO){
     if(!item){
-        return sc2icon(NORACE)
+        return sc2icon(NORACE,DO)
     }
     if(item.icon && !item.iconbroken) {
         return `assets/buttons/${item.icon}.png`
     }
     if(item.button && DO.buttons[item.button]){
-        return sc2icon(DO.buttons[item.button])
+        return sc2icon(DO.buttons[item.button],DO)
     }
     if(item.race){
-        return sc2icon(DO.races[item.race])
+        return sc2icon(DO.races[item.race],DO)
     }
-    return sc2icon(NORACE)
+    return sc2icon(NORACE,DO)
 }
 
 function processButton(DO, instance){
