@@ -146,7 +146,7 @@ function toXMLObject(data,DO,CF){
 
 function sc2race(item,DO){
     if(item?.race){
-        return sc2race(DO.races[item.race])
+        return sc2race(DO.races[item.race],DO)
     }
     return item
 }
@@ -201,6 +201,12 @@ function fromXMLObject(DO){
         upgrades: [],
         abilities: [],
         behaviors: [],
+        unitTypes: [
+            {id: 'Unit', name: 'Unit' , icon: 'btn-unit-terran-marine'},
+            {id: 'Hero', name: 'Other' , icon: 'btn-hero-raynor'},
+            {id: 'Structure', name: 'Structure' , icon: 'btn-building-terran-barracks'},
+            {id: 'Other', name: 'Other' , icon: 'wireframe-terran-troopermengskflamethrower'}
+        ],
         races: [
             {id: "all", selectable: false, used: true, name: "All Races", icon: 'ui_battlenet_glue_coop_newuser_splashicon'},
             {id: "none", selectable: false,  used: true, name: "No Race", icon: 'sc2_ui_coop_circularprogress_basic_bar' }
@@ -301,6 +307,14 @@ function fromXMLObject(DO){
         }
         DA[type].sort((a, b) => collator.compare(a.id, b.id));
     }
+
+    let TypePriorities = {
+        Structure: 100000,
+        Unit: 200000,
+        Hero: 300000
+    }
+
+    DA.units.sort((a, b) => ((TypePriorities[a.Type] || 0) + (a.priority || 1000) > (TypePriorities[b.Type] || 0) + (b.priority || 1000) ? 1 : -1))
 
     for(let unit of DA.units){
         let ocards = unit.card;

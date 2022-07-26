@@ -4,10 +4,17 @@
             <ul class="tabs">
                 <li :class="{active: activeCatalog === cat }" v-for="(cat , i) in DA.catalogs" :key="i" @click="setActiveCatalog(cat)">
                     {{cat.id}}
-                    <span v-if="raceFiltersActive.length">({{cat.count}})</span>
+                    <span v-if="unitTypeFilersActive.length && raceFiltersActive.length">({{cat.count}})</span>
                 </li>
             </ul>
 
+            <ul class="vtl-options-filters">
+                <template v-for="(ut,i) of DA.unitTypes" :key="i">
+                    <li :title="ut.name || ut.id" :class="{active: unitTypeFilersActive.includes(ut.id)}" @click="toggleUnitTypeFilter(ut)">
+                        <img :src="icon(ut)"/>
+                    </li>
+                </template>
+            </ul>
             <ul class="vtl-options-filters">
                 <template v-for="(race,i) of DA.races" :key="i">
                     <li v-if="!race.race && race.used" :title="race.name || race.id" :class="{active: raceFiltersActive.includes(race.id)}" @click="toggleRaceFilter(race)">
@@ -94,7 +101,7 @@
     import {reactive} from "vue";
     import axios from 'axios';
     import TableLite from "./table";
-    import {fromXMLObject,sc2icon,toXMLObject,getTableColumns} from "./sc2"
+    import {fromXMLObject,sc2race,sc2icon,toXMLObject,getTableColumns} from "./sc2"
     import "./style.less"
 
     
@@ -112,15 +119,37 @@
             isOnScreen(instance){
                 return true
             },
-            isFiltered(instance,field){
-                if(this.raceFiltersActive.includes("all")){
-                    return true
+            isFiltered(instance){
+
+                let unitType = instance.Type
+
+                if(['Unit','Structure','Hero'].includes(unitType)) {
+                    if (!this.unitTypeFilersActive.includes(unitType)) {
+                        return false;
+                    }
                 }
-                if(instance.race){
-                    return this.raceFiltersActive.includes(this.DO.races[instance.race]?.race || instance.race)
+                else{
+                    if (!this.unitTypeFilersActive.includes("Other")) {
+                        return false;
+                    }
                 }
 
-                return this.raceFiltersActive.includes("none")
+
+                if(!this.raceFiltersActive.includes("all")) {
+                    let race = sc2race(instance,this.DO)
+                    if(race){
+                        if (!this.raceFiltersActive.includes(race.id)){
+                            return false
+                        }
+                    }
+                    else {
+                        if (!this.raceFiltersActive.includes("none")){
+                            return false
+                        }
+                    }
+                }
+
+                return true
             },
             setActiveCatalog(category){
                 this.activeCatalog = category
@@ -129,17 +158,16 @@
                 return sc2icon(item,this.DO)
             },
             styles(item){
-                if(!item)return false
-                if(item.color) {
-                    return {'background-color': item.color + "22"}
-                }
-                if(item.race){
-                    return this.styles(this.DO.races[item.race])
+                if(!item) return false
+                let race = sc2race(item, this.DO)
+                if(!race) return false
+                if(race.color) {
+                    return {'background-color': race.color + "22"}
                 }
                 return null
             },
-            updateRaceCounters(race){
-                if(this.raceFiltersActive.length) {
+            updateRaceCounters(){
+                if(this.raceFiltersActive.length && this.unitTypeFilersActive.length) {
                     for (let catalog of this.DA.catalogs) {
                         let counter = 0
                         for (let instance of this.DA[catalog.id]) {
@@ -148,6 +176,15 @@
                         catalog.count = counter
                     }
                 }
+            },
+            toggleUnitTypeFilter(unitType){
+                if(!this.unitTypeFilersActive.includes(unitType.id)){
+                    this.unitTypeFilersActive.push(unitType.id)
+                }
+                else{
+                    this.unitTypeFilersActive.splice(this.unitTypeFilersActive.indexOf(unitType.id),1)
+                }
+                this.updateRaceCounters()
             },
             toggleRaceFilter(race){
                 if(!this.raceFiltersActive.includes(race.id)){
@@ -209,6 +246,7 @@
 
             return reactive({
                 isRaceFiltered: {},
+                unitTypeFilersActive: ["Structure","Unit"],
                 raceFiltersActive: ["all"],
                 activeCatalog: null,
                 sortable: {order: "index", sort: "asc"},
