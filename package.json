@@ -11,12 +11,12 @@
     "axios": "^0.26.1",
     "core-js": "^3.8.3",
     "debounce": "^1.2.1",
+    "highlight.js": "^11.6.0",
     "object-assign-deep": "^0.4.0",
+    "sortablejs": "^1.15.0",
     "timers": "^0.1.1",
     "v-contextmenu": "^3.0.0",
     "vue": "^3.2.13",
-    "vue-context": "^6.0.0",
-    "vue3-highlightjs": "^1.0.5",
     "xml2js": "^0.4.23"
   },
   "devDependencies": {

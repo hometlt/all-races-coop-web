@@ -148,6 +148,9 @@ function sc2race(item,DO){
     if(item?.race){
         return sc2race(DO.races[item.race],DO)
     }
+    if(item?.commander){
+        return sc2race(DO.commanders[item.commander],DO)
+    }
     return item
 }
 function sc2icon(item,DO){
@@ -236,26 +239,26 @@ function fromXMLObject(DO){
 
     objectAssignDeep(DO,{
         races: {
-            ued: {color: "#ffffa4"},
-            Gen: {color: "#80f0ff"},
-            Keir: {color: "#ffff80"},
-            Xayi: {color: "#ff7129"},
-            Prot: {color: "#4bb6fd"},
-            Terr: {color: "#4da05f"},
-            Zerg: {color: "#8b49ff"},
-            Neut: {color: "#e7e7e7"},
-            Dragon: {color: "#ff1a1a"},
-            NHbr: {color: "#000000"},
-            UPL: {color: "#acd9ff"},
-            Keiron: { race: "Keir"},
-            Genetron: { race: "Gen"},
-            Xayid: {race: "Xayi"},
-            Protoss: { race: "Prot"},
-            Terran: { race: "Terr"},
-            UED: { race: "ued"},
-            InfestedTerran: {race: "TerrI"},
-            PrimalZerg: {race: "ZergP"},
-            Neutral: {race: "Neut"}
+            // ued: {color: "#ffffa4"},
+            // Gen: {color: "#80f0ff"},
+            // Keir: {color: "#ffff80"},
+            // Xayi: {color: "#ff7129"},
+            // Prot: {color: "#4bb6fd"},
+            // Terr: {color: "#4da05f"},
+            // Zerg: {color: "#8b49ff"},
+            // Neut: {color: "#e7e7e7"},
+            // Dragon: {color: "#ff1a1a"},
+            // NHbr: {color: "#000000"},
+            // UPL: {color: "#acd9ff"},
+            // Keiron: { race: "Keir"},
+            // Genetron: { race: "Gen"},
+            // Xayid: {race: "Xayi"},
+            // Protoss: { race: "Prot"},
+            // Terran: { race: "Terr"},
+            // UED: { race: "ued"},
+            // InfestedTerran: {race: "TerrI"},
+            // PrimalZerg: {race: "ZergP"},
+            // Neutral: {race: "Neut"}
         }
     })
 
@@ -358,6 +361,7 @@ function fromXMLObject(DO){
     for(let index = 0; index < DA.tech.length; index++){
         let tech = DA.tech[index]
 
+
         Object.defineProperty(tech, 'index', {
             get: () =>{
                 return DA.tech.indexOf(tech)
@@ -369,8 +373,31 @@ function fromXMLObject(DO){
             configurable: true
         });
 
+        // Object.defineProperty(tech, 'id', {
+        //     get: function () {
+        //         return "" +
+        //             (this.commander || "") +
+        //             (this.prestige ? "prestige"+this.prestige : "") +
+        //             (this.level ? "Level"+this.level : "") +
+        //             "_"+
+        //             (this.unit || "") +
+        //             (this.ability || "") +
+        //             (this.upgrade || "") +
+        //             (this.behavior || "") +
+        //             (this.state || "ON")
+        //     },
+        //     set: (newValue) => {
+        //     },
+        //     enumerable: true,
+        //     configurable: true
+        // });
+
         if(tech.ability && DO.abilities[tech.ability+",0"]){
             tech.ability+=",0"
+        }
+
+        if(DO.tech[tech.id]){
+            console.log(tech.id)
         }
         DO.tech[tech.id] = tech
     }

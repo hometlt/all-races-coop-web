@@ -13872,7 +13872,7 @@
                 <Field Id="commander"/>
             </User>
         </Instances>
-        <Instances Id="TerranMengsk_PrestigeArmy">
+        <Instances Id="TerranMengsk_PrestigeArmy2">
             <Upgrade Upgrade="CommanderPrestigeMengskArmy">
                 <Field Id="upgrade"/>
             </Upgrade>

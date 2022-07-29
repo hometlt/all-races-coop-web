@@ -26,6 +26,7 @@
 
         <section v-if="activeCatalog?.id === 'tech'" class="table-section">
             <table-lite :columns="dataStructure"
+                        :create-row="createTech"
                         :rows="DA.tech"
                         :options-filter="isFiltered"
                         :icon="icon"
@@ -96,7 +97,6 @@
     </div>
 </template>
 
-
 <script>
     import {reactive} from "vue";
     import axios from 'axios';
@@ -119,7 +119,10 @@
             isOnScreen(instance){
                 return true
             },
-            isFiltered(instance){
+            isFiltered(instance, instanceType){
+
+
+
 
                 let unitType = instance.Type
 
@@ -171,7 +174,7 @@
                     for (let catalog of this.DA.catalogs) {
                         let counter = 0
                         for (let instance of this.DA[catalog.id]) {
-                            if(this.isFiltered(instance))counter++
+                            if(this.isFiltered(instance, catalog.id))counter++
                         }
                         catalog.count = counter
                     }
@@ -214,6 +217,47 @@
 
 
             },
+            createTech(){
+                //todo
+                let tech ={id: 'id' + (new Date()).getTime() };
+
+                Object.defineProperty(tech, 'index', {
+                    get: () =>{
+                        return this.DA.tech.indexOf(tech)
+                    },
+                    set: (newValue) => {
+
+                    },
+                    enumerable: true,
+                    configurable: true
+                });
+
+
+                // Object.defineProperty(tech, 'id', {
+                //     get: function () {
+                //         return "" +
+                //             (this.race || "") +
+                //             (this.commander || "") +
+                //             (this.prestige ? "prestige"+this.prestige : "") +
+                //             (this.level ? "Level"+this.level : "") +
+                //             "_"+
+                //             (this.unit || "") +
+                //             (this.ability || "") +
+                //             (this.upgrade || "") +
+                //             (this.behavior || "") +
+                //             (this.state || "ON")
+                //     },
+                //     set: (newValue) => {
+                //     },
+                //     enumerable: true,
+                //     configurable: true
+                // });
+
+                this.DO.tech[tech.id] = tech
+
+                return tech
+
+            },
             save(){
                 return toXMLObject({tech: this.DA.tech},this.DO,this.CF)
                 // this.download("output.xml",xml);
@@ -246,7 +290,7 @@
 
             return reactive({
                 isRaceFiltered: {},
-                unitTypeFilersActive: ["Structure","Unit"],
+                unitTypeFilersActive: ["Structure","Unit","Hero","Other"],
                 raceFiltersActive: ["all"],
                 activeCatalog: null,
                 sortable: {order: "index", sort: "asc"},
@@ -257,69 +301,3 @@
         }
     }
 </script>
-
-
-<style>
-    body{
-        overflow: hidden;
-    }
-    h3 {
-        margin-bottom: 5%;
-    }
-    .blog-body{
-        color:white;
-    }
-    .table{
-
-        color: white;
-    }
-    td.vtl-tbody-td {
-        font-size: 11px;
-        padding: 0 4px !important;
-        text-align: left;
-        max-width: 100px;
-    }
-    th.vtl-thead-th{
-        font-size: 11px;
-        padding: 6px 4px !important;
-        text-align: left;
-    }
-
-    th.filter-field{
-        padding: 2px 1px 2px 1px !important;
-        height: 28px;
-    }
-    th input{
-        display: flex;
-        width: 100%;
-        height: 100%;
-    }
-    th.vtl-thead-th {
-        border: 0 !important;
-    }
-
-
-    .vtl-thead-column.vtl-sortable.vtl-both {
-        padding-right: 20px !important;
-    }
-
-    thead {
-        position: sticky;
-        top: 0;
-        z-index: 10;
-    }
-
-    .vtl-table {
-        background: white;
-        left: -1px;
-        position: relative;
-    }
-
-    tr.vtl-tbody-tr {
-        height: 39px;
-    }
-
-    td.vtl-tbody-td img{
-        margin-right: 4px;
-    }
-</style>

@@ -9,35 +9,49 @@
         </v-contextmenu-item>
     </v-contextmenu>
 
+
+    <v-contextmenu ref="contextmenu2">
+        <v-contextmenu-item :hide-on-click="true" @click="removeRow">
+            Remove Row
+        </v-contextmenu-item>
+        <v-contextmenu-item :hide-on-click="true" @click="insertRowBefore">
+            Insert Before
+        </v-contextmenu-item>
+        <v-contextmenu-item :hide-on-click="true" @click="insertRowAfter">
+            Insert After
+        </v-contextmenu-item>
+    </v-contextmenu>
+
     <div  v-if="view === 'TABLE'" class="vtl-card-body" @keydown.esc="discardChanges()" @keydown.enter="applyChanges()">
         <Transition>
             <div v-if="editing.col?.options" class="vtl-loading-mask" @click="applyChanges()"></div>
         </Transition>
-        <table  class="vtl-table vtl-table-hover vtl-table-bordered vtl-table-responsive vtl-table-responsive-sm"
+        <table @mousedown="tableDragStart($event)" @mousemove="tableDragMove($event)" @mouseleave="tableDragEnd($event)" @mouseup="tableDragEnd($event)" class="vtl-table vtl-table-hover vtl-table-bordered vtl-table-responsive vtl-table-responsive-sm"
                     ref="localTable" :class="{   'fixed-first-column': isFixedFirstColumn,   'fixed-first-second-column': isFixedFirstColumn, }">
                 <thead class="vtl-thead" v-contextmenu:contextmenu>
 
 
 
-                    <draggable v-model="setting.visibleColumns" tag="tr" :item-key="key => key" handle=".vtl-thead-column span">
-                        <template #item="{ element, index }">
-                            <th :key="index" class="vtl-thead-th" :class="{'with-icon': element.icon}" :style="{ width: element.width ? element.width : 'auto' }">
-                                <div class="vtl-thead-column" :class="theadClasses(element)" @click="doSort(element)">
-                                    <span>{{ element.label }}</span>
+<!--                    <draggable v-model="setting.visibleColumns" tag="tr" :item-key="key => key" handle=".vtl-thead-column span">-->
+<!--                        <template #item="{ element, index }">-->
+                    <tr>
+                        <th v-for="(element,index) in setting.visibleColumns" :key="index" class="vtl-thead-th" :class="{'with-icon': element.icon}" :style="{ width: element.width ? element.width : 'auto' }">
+                            <div class="vtl-thead-column" :class="theadClasses(element)" @click="doSort(element)">
+                                <span>{{ element.label }}</span>
+                            </div>
+                            <div class="filter-field">
+                                <div v-if="element.filter">
+                                    <input @input="applyFilters" v-model="element.filter.value"/>
                                 </div>
-                                <div class="filter-field">
-                                    <div v-if="element.filter">
-                                        <input @input="applyFilters" v-model="element.filter.value"/>
-                                    </div>
-                                </div>
-                            </th>
-                        </template>
-                    </draggable>
+                            </div>
+                        </th>
+                    </tr>
+<!--                        </template>-->
+<!--                    </draggable>-->
                 </thead>
 
                 <tbody>
-                    <tr v-if="editing.row" ref="edit" @wheel.prevent @touchmove.prevent @scroll.prevent :class="{'modal-edit': editing.col.options}" class="vtl-tbody-tr vtl-edit-row" :style="{top: editing.rowPosition}">
-                        <!--                        <td class="vtl-tbody-td"></td>-->
+                    <tr v-if="editing.row" ref="editRow" @wheel.prevent @touchmove.prevent @scroll.prevent :class="{'modal-edit': editing.col.options}" class="vtl-tbody-tr vtl-edit-row" :style="{top: editing.rowPosition}">
                         <td v-for="(col, j) in setting.visibleColumns" :key="j" :class="{active: editing.col === col }">
                             <div class="vtl-edit" :class="editing.positionClass">
                                 <input v-model="editing.value" @input="filterOptions"/>
@@ -49,31 +63,31 @@
 
                         </td>
                     </tr>
-                    <tr v-else class="vtl-tbody-tr vtl-edit-row" >
-                        <td colspan="999"></td>
+                    <tr v-else ref="addRow"  class="vtl-tbody-tr vtl-edit-row add-row" :class="{'add-row-before': editing.draggingOverPosition === 'before','add-row-after': editing.draggingOverPosition === 'after'}" :style="{top: editing.rowPosition}">
+                        <td v-if="!editing.selectedRows.length" class="active"><button @click="insertRow()" class="add-button">+</button></td>
                     </tr>
                 </tbody>
 
-
-
-                <draggable v-model="localRows" tag="tbody" item-key="index" class="vtl-tbody" @click="handleTableClick($event)" >
-                    <template #item="{element,index}">
-                        <tr class="vtl-tbody-tr"  v-if="index > minVisibleRow && index < maxVisibleRow" :class="{selected: element.$selected}">
-                            <td v-for="(col, j) in setting.visibleColumns" :key="j" :title="element[col.field]" :style="col.datasource && element[col.field] && styles(col.datasource[element[col.field]])">
+                <transition-group tag="tbody" name="slide" class="vtl-tbody" @click="handleTableClick($event)" @contextmenu="handleTableRightClick($event)">
+                    <tr v-for="(element,index) in localRows" :key="element.id">
+                        <template v-if="index > minVisibleRow && index < maxVisibleRow">
+                            <td v-for="(col, j) in setting.visibleColumns" :key="j" :title="element[col.field]" :style="col.datasource && element[col.field] && styles(col.datasource[element[col.field]])" :class="{handle: j===0}">
                                 <img v-if="col.icon && element[col.field]" :src="icon(col.datasource[element[col.field]])"/>
-                                <span @click="debug(col.datasource) ">{{element[col.field]}}</span>
+                                <span>{{element[col.field]}}</span>
                             </td>
-                        </tr>
-                        <tr v-else class="vtl-tbody-tr"></tr>
-                    </template>
-                </draggable>
-                <tr :height="editing.expanderSize"></tr>
+                        </template>
+                    </tr>
+                </transition-group>
+
                 <tfoot>
                     <tr>
                         <td colspan="999">
                             <div class="vtl-status">{{editing.tableStatus}}</div>
                         </td>
                     </tr>
+                </tfoot>
+                <tfoot>
+                    <tr :height="editing.expanderSize"></tr>
                 </tfoot>
             </table>
 
@@ -108,9 +122,7 @@
     import { debounce } from "debounce";
     import {directive, Contextmenu, ContextmenuItem} from "v-contextmenu"
     import {defineComponent, ref, reactive, nextTick } from "vue";
-    import draggable from './draggable/vuedraggable'
     import "v-contextmenu/dist/themes/dark.css";
-    import VueHighlightJS from 'vue3-highlightjs'
     import 'highlight.js/styles/agate.css'
 
     let collator = new Intl.Collator(undefined, {
@@ -137,13 +149,12 @@
             contextmenu: directive,
         },
         components: {
-            draggable,
+            // draggable,
             [Contextmenu.name]: Contextmenu,
             [ContextmenuItem.name]: ContextmenuItem,
         },
         name: "my-table",
         emits: [
-            "return-checked-rows",
             "do-search",
             "is-finished",
             "row-clicked",
@@ -153,11 +164,6 @@
             hasFilters: {
                 type: Boolean,
                 default: false,
-            },
-            // Checkbox (Returns data type for checked of Checkbox)
-            checkedReturnType: {
-                type: String,
-                default: "key",
             },
             //  (Fixed first column's position)
             isFixedFirstColumn: {
@@ -209,6 +215,10 @@
                 type: Function,
                 default: (item)=> null,
             },
+            createRow: {
+                type: Function,
+                default: (item)=> null,
+            },
             // (Sort condition)
             sortable: {
                 type: Object,
@@ -234,9 +244,6 @@
                 let xml = this.save(this.rows, this.columns)
                 this.view = "XML"
                 this.xml = xml
-            },
-            debug(value){
-                window.x= value
             },
             toggleColumnVisibility (col) {
                 if(col.visible){
@@ -296,13 +303,134 @@
                 }
                 this.editing.expanderSize = table.clientHeight - table.tHead.clientHeight - table.tFoot.clientHeight - table.tBodies[0].clientHeight - table.tBodies[1].clientHeight
             },
-            toggleRowSelection(row){
-                row.$selected = !row.$selected
-                if(row.$selected){
-                    this.setting.selectedRows.push(row)
+            tableDragStart(event){
+                //mousedown
+                if(!this.dragging.active && !this.dragging.ready){
+                    this.dragging.ready = event.clientY
                 }
-                else{
-                    this.setting.selectedRows.splice(this.setting.selectedRows.indexOf(row),1)
+            },
+            tableDragMove(event){
+
+                if(event.target.nodeName === 'TBODY' || event.target.nodeName === 'TABLE'){
+                    return false
+                }
+                let tr = event.target; while(tr.nodeName !== 'TR')tr = tr.parentElement;
+
+                if(tr === this.$refs.addRow || tr === this.$refs.editRow){
+                    return false;
+                }
+
+                let tbody = tr.parentElement;
+                let rowIndex = Array.prototype.indexOf.call(tbody.children,tr)
+
+
+
+                this.editing.draggingOverPosition = event.offsetY < 20 ? "before" : "after"
+                this.editing.draggingOverRowIndex= rowIndex
+
+                if(this.dragging.ready){
+                    //dragstart
+                    if(Math.abs(this.dragging.ready - event.clientY) > 10){
+                        delete this.dragging.ready
+                        this.dragging.active = true
+
+
+                        if(!this.isRowSelected(this.localRows[rowIndex])){
+                            this.clearSelection()
+                            this.selectRow(this.localRows[rowIndex])
+                        }
+                    }
+                }
+                else if(this.dragging.active){
+                    //dragmove
+                    if(this.dragging.draggingOverPosition === this.editing.draggingOverPosition && tr === this.dragging.draggingOverRow){
+                        return
+                    }
+                    if(this.dragging.draggingOverRow){
+                        this.dragging.draggingOverRow.classList.remove('insert-after')
+                        this.dragging.draggingOverRow.classList.remove('insert-before')
+                    }
+                    this.dragging.draggingOverRow = tr
+                    this.dragging.draggingOverPosition = this.editing.draggingOverPosition;
+
+                    if(this.isRowSelected(this.localRows[rowIndex])){
+                        delete this.dragging.targetIndex
+                    }
+                    else{
+                        this.dragging.targetIndex = rowIndex
+                        tr.classList.add('insert-' + this.dragging.draggingOverPosition)
+                    }
+                }
+                else if(!this.editing.row){
+                    this.setEditRowPosition(rowIndex)
+                }
+
+
+            },
+            tableDragEnd(event){
+                //dragcancel
+                if(this.dragging.ready) {
+                    delete this.dragging.ready
+                }
+
+                //dragend
+                if(this.dragging.active){
+                    if(this.dragging.draggingOverRow){
+                        this.dragging.draggingOverRow.classList.remove('insert-after')
+                        this.dragging.draggingOverRow.classList.remove('insert-before')
+                    }
+                    if(this.dragging.targetIndex){
+                        let targetRow = this.localRows[this.dragging.targetIndex]
+
+                        for(let row of this.editing.selectedRows){
+                            // eslint-disable-next-line vue/no-mutating-props
+                            this.rows.splice(this.rows.indexOf(row),1);
+                        }
+
+                        if(this.dragging.draggingOverPosition === "before"){
+                            // eslint-disable-next-line vue/no-mutating-props
+                            this.rows.splice(this.rows.indexOf(targetRow),0,...this.editing.selectedRows);
+                        }
+                        else{
+                            // eslint-disable-next-line vue/no-mutating-props
+                            this.rows.splice(this.rows.indexOf(targetRow)+ 1,0,...this.editing.selectedRows);
+                        }
+
+                        this.applyFilters();
+                    }
+                    delete this.dragging.draggingOverRow
+                    delete this.dragging.draggingOverPosition;
+                    delete this.dragging.active
+                    delete this.dragging.targetIndex
+                }
+            },
+            removeRow(row){
+                // eslint-disable-next-line vue/no-mutating-props
+                this.rows.splice(this.rows.indexOf(row),1);
+                this.applyFilters();
+            },
+            insertRowBefore(){
+                let row = this.createRow()
+                console.log(this.editing.draggingOverRowIndex)
+                // eslint-disable-next-line vue/no-mutating-props
+                this.rows.splice(this.editing.draggingOverRowIndex,0,row);
+                this.applyFilters();
+            },
+            insertRowAfter(){
+                let row = this.createRow()
+                // eslint-disable-next-line vue/no-mutating-props
+                this.rows.splice(this.editing.draggingOverRowIndex+ 1,0,row );
+                this.applyFilters();
+            },
+            insertRow(){
+                if(this.editing.draggingOverRowIndex){
+
+                    if(this.editing.draggingOverPosition === "before"){
+                        this.insertRowBefore()
+                    }
+                    else {
+                        this.insertRowAfter()
+                    }
                 }
             },
             headerStyle(col){
@@ -315,12 +443,25 @@
                 return this.editing.row === row && this.editing.col === col
             },
             discardChanges() {
-                this.editing.row = null
-                this.editing.col = null
-                this.editing.value = null
+                if(this.editing.row){
+                    this.editing.row = null
+                    this.editing.col = null
+                    this.editing.value = null
+                }
+                else{
+                    this.clearSelection()
+                }
             },
             applyChanges() {
-                this.editing.row[this.editing.col.field] = this.editing.value
+                //multiple selection
+                if(this.editing.selectedRows.includes(this.editing.row)){
+                    for(let row of this.editing.selectedRows){
+                        row[this.editing.col.field] = this.editing.value
+                    }
+                }
+                else{
+                    this.editing.row[this.editing.col.field] = this.editing.value
+                }
                 this.editing.row = null
                 this.editing.col = null
                 this.editing.value = null
@@ -339,66 +480,111 @@
                 this.editing.value = option.id
                 this.applyChanges()
             },
-            handleTableClick(event) {
+            handleTableRightClick(event) {
 
+            },
+            handleTableClick(event) {
                 if(this.$refs.contextmenu.visible) {
                     return false
                 }
-
                 if(event.target.nodeName === 'TBODY' || event.target.nodeName === 'TR'){
                     this.discardChanges()
                     return false
                 }
-
-
                 let td = event.target; while(td.nodeName !== 'TD')td = td.parentElement;
                 let tr = td.parentElement;
                 let tbody = tr.parentElement;
-
                 let colIndex = Array.prototype.indexOf.call(tr.children,td)
                 let rowIndex = Array.prototype.indexOf.call(tbody.children,tr)
 
-                if(rowIndex < 0)return false;
-
-                if(this.editing.row){
+                if(rowIndex < 0){
+                    return false;
+                }
+                if(this.editing.row) {
                     this.applyChanges()
-                    // return false;
+                }
 
+                if(event.shiftKey && this.editing.lastSelectedRow){
+                    let lastSelectedRowIndex = this.localRows.indexOf(this.editing.lastSelectedRow)
+                    let rowsToSelect = this.localRows.slice(Math.min(lastSelectedRowIndex,rowIndex),Math.max(lastSelectedRowIndex,rowIndex)+1)
+                    this.selectRows(rowsToSelect)
+                }
+                else if(event.ctrlKey){
+                    this.toggleRow(this.localRows[rowIndex])
+                }
+                else if(colIndex === 0){
+                    this.clearSelection()
+                    this.selectRow(this.localRows[rowIndex])
+                }
+                else {
+                    if(!this.isRowSelected(this.localRows[rowIndex])){
+                        this.clearSelection()
+                    }
+                    this.selectRow(this.localRows[rowIndex])
                     nextTick(() => {
-                        this.edit(rowIndex, colIndex)
+                        this.editRowCell(rowIndex, colIndex)
                     })
                 }
-                else{
-                    this.edit(rowIndex,colIndex)
-                }
-
             },
-            edit(rowIndex,colIndex){
+            clearSelection(){
 
+                let selectedRows = this.editing.selectedRows.slice()
+                for(let row of selectedRows){
+                    this.deselectRow(row)
+                }
+            },
+            selectRows(rows){
+                for(let row of rows){
+                    this.selectRow(row)
+                }
+            },
+            isRowSelected(row){
+                return this.editing.selectedRows.includes(row)
+            },
+            deselectRow(row){
+                let rowIndex = this.localRows.indexOf(row)
+                if(this.isRowSelected(row)){
+                    this.$refs.localTable.tBodies[1].children[rowIndex].classList.remove("selected")
+                    this.editing.selectedRows.splice(this.editing.selectedRows.indexOf(row),1)
+                }
+                this.lastSelectedRow = null
+            },
+            selectRow(row){
+                let rowIndex = this.localRows.indexOf(row)
+                if(!this.isRowSelected(row)){
+                    this.$refs.localTable.tBodies[1].children[rowIndex].classList.add("selected")
+                    this.editing.selectedRows.push(row)
+                }
+                this.editing.lastSelectedRow = row
+            },
+            toggleRow(row){
+                if(!this.isRowSelected(row)){
+                    this.selectRow(row)
+                }
+                else{
+                    this.deselectRow(row)
+                }
+            },
+            setEditRowPosition(rowIndex){
+                let tr  = this.$refs.localTable.tBodies[1].children[rowIndex]
+                this.editing.rowPosition = tr.offsetTop + tr.clientHeight + 'px'
+            },
+            editRowCell(rowIndex,colIndex){
                 let row = this.localRows[rowIndex];
                 let col = this.setting.visibleColumns[colIndex]
-                if(colIndex === 0){
-                    this.toggleRowSelection(row)
-                }
-
                 if(col.editable === false){
                     return
                 }
-
-                let tr  = this.$refs.localTable.tBodies[1].children[rowIndex]
-
                 this.editing.row = row
                 this.editing.col = col
                 this.editing.columnIndex = colIndex
                 this.editing.value = row[col.field]
-                this.editing.rowPosition = tr.offsetTop + tr.clientHeight + 'px'
+                this.setEditRowPosition(rowIndex)
                 this.filterOptions()
-
                 nextTick(() =>{
-                    this.$refs.edit.children[colIndex].getElementsByTagName("input")[0].focus()
+                    this.$refs.editRow.children[colIndex].getElementsByTagName("input")[0].focus()
                     this.showOptions()
                 })
-
             },
             showOptions(){
 
@@ -409,13 +595,10 @@
 
                 let width = this.$refs.localTable.clientWidth;
                 let height = this.$refs.localTable.clientHeight;
-
                 let position = this.editing.position
-                let rect = this.$refs.edit.children[this.editing.columnIndex].getBoundingClientRect()
-
+                let rect = this.$refs.editRow.children[this.editing.columnIndex].getBoundingClientRect()
                 let right = width - rect.right
                 let bottom = height - rect.bottom
-
 
                 if (right > rect.left) {
                     position.left = Math.round(rect.left + rect.width) + 'px'
@@ -439,17 +622,11 @@
                 if(!this.editing.col.options){
                     return
                 }
-
-                // if(!this.editing.value){
-                //     this.editing.options = this.editing.col.options
-                // }
-                // else{
                 let editingValue = this.editing.value?.toLowerCase();
                 this.editing.options = this.editing.col.options.filter(option =>{
                     if(option.selectable === false)return false
                     return this.optionsFilter(option,this.editing.col.field) && (!editingValue || option.id.toLowerCase().includes(editingValue))
                 })
-                // }
                 nextTick(()=>{
                     this.updateOptionsVisibility()
                 })
@@ -463,6 +640,12 @@
                 });
 
                 this.localRows = this.rows.filter(row => {
+
+                    if(!this.optionsFilter(row,"tech")){
+                        return false
+                    }
+
+
                     for (let field in filters) {
                         //todo add numbers validation
                         if(field === "index"){
@@ -478,40 +661,6 @@
                     this.updateRowsVisibility()
                 })
             },
-            // /**
-            //  * Checkbox點擊事件 (Checkbox click event)
-            //  */
-            // checked (event) {
-            //     event.stopPropagation();
-            //     let isChecked = [];
-            //     this.rowCheckbox.value.forEach((val, i) => {
-            //         if (val && val.checked) {
-            //             if (this.props.checkedReturnType === "row") {
-            //                 isChecked.push(this.localRows.value[i]);
-            //             } else {
-            //                 isChecked.push(val.value);
-            //             }
-            //         }
-            //     });
-            //     // 回傳畫面上選上的資料 (Return the selected data on the screen)
-            //     this.$emit("return-checked-rows", isChecked);
-            // },
-            //
-            // /**
-            //  * 清空畫面上所有選擇資料 (Clear all selected data on the screen)
-            //  */
-            // clearChecked ()  {
-            //     for(let checkbox of this.rowCheckbox){
-            //         checkbox.checked = false
-            //     }
-            //     this.$emit("return-checked-rows", []);
-            // },
-            // isAllChecked(){
-            //     for( let checkboxValue of this.rowCheckbox.value){
-            //         if(!checkboxValue?.checked === true)return false
-            //     }
-            //     return true
-            // },
             doSort (col){
                 if(!col.sortable) return;
                 let order = col.field
@@ -546,7 +695,6 @@
             return {
                 localRows: [],
                 view: "TABLE",
-                selectedRows: [],
                 minVisibleRow: 0,
                 maxVisibleRow: 0,
                 minVisibleOption: 0,
@@ -568,6 +716,8 @@
                 }
             })
             const editing = reactive({
+                selectedRows: [],
+                lastSelectedRow: null,
                 editorTools: false,
                 row: null,
                 col: null,
@@ -576,18 +726,20 @@
                 positionClass: ""
             })
             const setting = reactive({
-                selectedRows: [],
                 visibleColumns,
                 isCheckAll: false,
                 order: props.sortable.order,
                 sort: props.sortable.sort
             });
             return {
+                dragging: reactive({}),
                 columnsWithOptions,
                 setting,
                 editing,
                 tBody: ref  (null),
                 localTable: ref  (null),
+                addRow: ref  (null),
+                editRow: ref  (null),
                 optionsList: ref  (null),
                 rowCheckbox : ref([])
             }
