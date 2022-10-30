@@ -4,7 +4,7 @@
 
 <script>
 // import Users from './components/TechComponent.vue'
-import Users from './components/TechComponent.vue'
+import Users from './TechComponent.vue'
 
 export default {
   name: 'App',
