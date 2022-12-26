@@ -111,10 +111,18 @@
     import {reactive} from "vue";
     import axios from 'axios';
     import TableLite from "./TableComponent";
-    import {fromXMLObject,sc2race,sc2icon,toXMLObject,getTableColumns} from "../../_website-server/server/sc2"
+
+
+
+
+    function fromXMLObject(){}
+    function sc2race(){}
+    function sc2icon(){}
+    function toXMLObject(){}
+    function getTableColumns(){}
+
     import "./style.less"
 
-    
     export default {
         name: 'UsersComponent',
         components: {
@@ -130,9 +138,6 @@
                 return true
             },
             isFiltered(instance, instanceType){
-
-
-
 
                 let unitType = instance.Type
 
@@ -302,8 +307,6 @@
             axios.get('./gamedata.json').then(res => this.getEditorData(res.data))
         },
         data () {
-
-
             return reactive({
                 isRaceFiltered: {},
                 unitTypeFilersActive: ["Structure","Unit","Hero","Other"],
